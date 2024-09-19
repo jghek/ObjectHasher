@@ -160,3 +160,7 @@ var md5Hasher = new ObjectHash(md5Algorithm);
 byte[] hash = md5Hasher.ComputeHash(user);
 Console.WriteLine(BitConverter.ToString(hash));
 ```
+
+## Credits
+
+The icon used has been designed by Flaticon.com

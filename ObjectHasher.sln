@@ -8,6 +8,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectHasher.Tests", "tests\ObjectHasher.Tests\ObjectHasher.Tests.csproj", "{1E0D2B96-2FB4-44DC-9382-37A25DB5617E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{C62E2410-2509-4FEA-B562-E53F778B7E1A}"
+	ProjectSection(SolutionItems) = preProject
+		package\hash.png = package\hash.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
