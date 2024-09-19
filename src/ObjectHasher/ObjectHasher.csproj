@@ -3,7 +3,34 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <PackageIcon>hash.png</PackageIcon>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>ObjectHasher</Title>
+    <Authors>jghek</Authors>
+    <Company>Qtopia NL</Company>
+    <Description>A simple library that generates hash for arbitrary object using most common cryptographic and non-cryptographic algorithms.</Description>
+    <Copyright>(c) 2024 by J.G.Hek</Copyright>
+    <PackageProjectUrl>https://github.com/jghek/ObjectHasher</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/jghek/ObjectHasher</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\package\hash.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.IO.Hashing" Version="8.0.0" />

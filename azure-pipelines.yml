@@ -1,0 +1,73 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  BuildConfiguration: 'Release'
+  BuildPlatform: 'Any CPU'
+  PatchStart: 0
+  ${{ if eq( variables['Build.SourceBranchName'], 'main' ) }}:
+    Major: '1'
+    Minor: '0'
+    Patch: $[counter(format('{0}.{1}', variables['Major'], variables['Minor']), variables['PatchStart'])]
+    PackageVersion: $(Major).$(Minor).$(Patch)
+
+jobs:
+  - job: Build_and_Publish_Shared_NuGet_Package
+    steps:
+      - script: echo '##vso[build.updatebuildnumber]$(PackageVersion)'
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        displayName: Set Build Number
+
+      - task: UseDotNet@2
+        displayName: 'Use .NET 8 Core SDK'
+        inputs:
+          packageType: 'sdk'
+          version: '8.0.x'
+          includePreviewVersions: true
+          
+      - task: NuGetToolInstaller@1
+        inputs:
+          checkLatest: true
+
+      - task: DotNetCoreCLI@2
+        displayName: 'dotnet restore'
+        inputs:
+          command: 'restore'
+          projects: 'NumberRanges.sln'
+          feedsToUse: 'select'
+          includeNuGetOrg: true
+          
+      - task: DotNetCoreCLI@2
+        displayName: Build
+        inputs:
+          command: build
+          projects: '**/*.csproj'
+          arguments: '--configuration $(BuildConfiguration) --no-restore'
+
+      - task: DotNetCoreCLI@2
+        displayName: Run Tests
+        inputs:
+          command: test
+          projects: '**/*.Tests.csproj'
+          arguments: '--configuration $(BuildConfiguration)'
+
+      - task: DotNetCoreCLI@2
+        displayName: Package up the Assembly
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        inputs:
+          command: pack
+          packagesToPack: '**/*.csproj'
+          nobuild: true
+          versioningScheme: byBuildNumber
+          verbosityPack: 'Normal'
+
+      - task: NuGetCommand@2
+        displayName: 'NuGet push'
+        condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+        inputs:
+          command: custom
+          arguments: push $(Build.ArtifactStagingDirectory)/*.nupkg $(NuGetApiKey) -Source $(NuGetSource)
+
