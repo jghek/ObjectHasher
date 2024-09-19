@@ -10,6 +10,6 @@ using System.Text;
 
 public interface IObjectHasher
 {
-	void Register<T>(Action<TypeConfiguration<T>> configure) where T: class, new();
+	void Register<T>(Action<TypeConfiguration> configure) where T: class;
 	byte[] ComputeHash<T>(T obj) where T : class;
 }

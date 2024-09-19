@@ -9,8 +9,9 @@ using System.Text;
 /// </summary
 public class ObjectHasher : IObjectHasher
 {
-	private readonly Dictionary<Type, object> _configurations = new Dictionary<Type, object>();
+	private readonly Dictionary<Type, TypeConfiguration> _configurations = new Dictionary<Type, TypeConfiguration>();
 	private readonly IHashAlgorithm _hashAlgorithm;
+	public Encoding DefaultEncoding { get; set; } = Encoding.Unicode;
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="ObjectHasher"/> class with the specified hash algorithm.
@@ -26,12 +27,13 @@ public class ObjectHasher : IObjectHasher
 	/// </summary>
 	/// <typeparam name="T">The type to register the configuration for.</typeparam>
 	/// <param name="configure">An action to configure the type.</param>
-	public void Register<T>(Action<TypeConfiguration<T>> configure) where T : class, new()
+	public void Register<T>(Action<TypeConfiguration> configure) where T : class
 	{
-		var typeConfig = new TypeConfiguration<T>();
+		var typeConfig = new TypeConfiguration(typeof(T));
 		configure(typeConfig);
 		_configurations[typeof(T)] = typeConfig;
 	}
+
 
 	/// <summary>
 	/// Computes the hash for the specified object.
@@ -39,21 +41,8 @@ public class ObjectHasher : IObjectHasher
 	/// <typeparam name="T">The type of the object.</typeparam>
 	/// <param name="obj">The object to compute the hash for.</param>
 	/// <returns>A byte array representing the computed hash.</returns>
-	public byte[] ComputeHash<T>(T obj) where T: class
-	{
-		_hashAlgorithm.Reset();
-
-		if (_configurations.TryGetValue(typeof(T), out var configObj) && configObj is TypeConfiguration<T> config)
-			// Use registered configurations
-			computeHashWithConfig(obj, config);
-		else
-		{
-			// Fallback to reflection
-			computeHashFallback(obj, _hashAlgorithm);
-		}
-
-		return _hashAlgorithm.GetHashAndReset();
-	}
+	public byte[] ComputeHash(object obj)
+		=> computeHash(obj, _hashAlgorithm, _configurations);
 
 	/// <summary>
 	/// Computes the hash for the specified object using a static method.
@@ -62,87 +51,150 @@ public class ObjectHasher : IObjectHasher
 	/// <param name="obj">The object to compute the hash for.</param>
 	/// <param name="hashAlgorithm">The hash algorithm to use for computing the hash.</param>
 	/// <returns>A byte array representing the computed hash.</returns>
-	public static byte[] ComputeHashStatic<T>(T obj, IHashAlgorithm hashAlgorithm)
+	public static byte[] ComputeHash(object obj, IHashAlgorithm hashAlgorithm)
+		=> computeHash(obj, hashAlgorithm, new());
+
+	private static byte[] computeHash(object obj, IHashAlgorithm hashAlgorithm, Dictionary<Type, TypeConfiguration> configurations)
 	{
-		var hasher = new ObjectHasher(hashAlgorithm);
-		return computeHashFallback(obj, hashAlgorithm);
-	}
+		hashAlgorithm.Reset();
 
-	private static byte[] computeHashFallback<T>(T obj, IHashAlgorithm hashAlgorithm)
-	{
-		if (obj == null)
-			throw new ArgumentNullException(nameof(obj));
+		processType(obj, hashAlgorithm, configurations);
 
-		var properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-		var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
-
-		foreach (var prop in properties)
-		{
-			var value = prop.GetValue(obj);
-			if (value == null) continue;
-			processMemberValue(hashAlgorithm, prop.PropertyType, value);
-		}
-
-		foreach (var field in fields)
-		{
-			var value = field.GetValue(obj);
-			if (value == null) continue;
-			processMemberValue(hashAlgorithm, field.FieldType, value);
-		}
+		//if (configurations.TryGetValue(typeof(T), out var configObj) && configObj is TypeConfiguration<T> config)
+		//	computeHashWithConfig(obj, hashAlgorithm, config);
+		//else
+		//	computeHashFallback(obj, hashAlgorithm);
 
 		return hashAlgorithm.GetHashAndReset();
 	}
 
-	private void computeHashWithConfig<T>(T obj, TypeConfiguration<T> config) where T : class
+	private static void processType<T>(T obj, IHashAlgorithm hashAlgorithm, Dictionary<Type, TypeConfiguration> configurations) where T : class
 	{
-		foreach (var propertyConfig in config.PropertyConfigs)
+		ArgumentNullException.ThrowIfNull(obj);
+
+		if (configurations is not null && configurations.TryGetValue(typeof(T), out TypeConfiguration config))
 		{
-			if (propertyConfig.Value.Ignore)
-				continue;
-
-			var value = propertyConfig.Value.Selector(obj);
-			
-			if (value == null) 
-				continue;
-
-			if (propertyConfig.Value.Encoding != null && value is string strValue)
+			foreach (var propertyConfig in config.PropertyConfigs)
 			{
-				var stringBytes = propertyConfig.Value.Encoding.GetBytes(strValue);
-				_hashAlgorithm.Append(stringBytes);
+				if (propertyConfig.Value.Ignore)
+					continue;
+
+				var value = propertyConfig.Value.Selector(obj);
+
+				if (value == null)
+					continue;
+
+				if (propertyConfig.Value.Encoding != null && value is string strValue)
+				{
+					var stringBytes = propertyConfig.Value.Encoding.GetBytes(strValue);
+					hashAlgorithm.Append(stringBytes);
+				}
+				else
+					processMemberValue(value.GetType(), hashAlgorithm, value);
 			}
-			else
-				processMemberValue(_hashAlgorithm, typeof(T), value);
+		}
+		else 
+		{
+			var properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+			var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+			foreach (var prop in properties)
+			{
+				var value = prop.GetValue(obj);
+				if (value == null) continue;
+				processMemberValue(prop.PropertyType, hashAlgorithm, value);
+			}
+
+			foreach (var field in fields)
+			{
+				var value = field.GetValue(obj);
+				if (value == null) continue;
+				processMemberValue(field.FieldType, hashAlgorithm, value);
+			}
 		}
 	}
 
-	private static void processMemberValue(IHashAlgorithm hashAlgorithm, Type memberType, object value)
+	private static void processMemberValue<T>(string name, object value, IHashAlgorithm hashAlgorithm, Dictionary<Type, TypeConfiguration> configurations, Encoding defaultEncoding) where T: class
 	{
+		var memberType = value.GetType();
+
+		PropertyConfig? config = null;
+
+		if (configurations.TryGetValue(typeof(T), out TypeConfiguration v))
+			if (v.PropertyConfigs.TryGetValue(name, out PropertyConfig c))
+				config = c;
+
 		if (memberType == typeof(string))
 		{
-			string strValue = (string)value;
-			byte[] stringBytes = Encoding.Unicode.GetBytes(strValue);
-			hashAlgorithm.Append(stringBytes);
+			hashAlgorithm.Append(config?.Encoding?.GetBytes((string)value) ?? defaultEncoding.GetBytes((string)value));
 		}
 		else if (memberType.IsPrimitive || isSupportedPrimitiveType(memberType))
 		{
-			byte[] primitiveBytes = getBytesForPrimitive(value);
-			hashAlgorithm.Append(primitiveBytes);
+			hashAlgorithm.Append(getBytesForPrimitive(value));
 		}
 		else if (memberType.IsValueType)
 		{
-			byte[] structBytes = getBytesForValueType(value);
-			hashAlgorithm.Append(structBytes);
+			hashAlgorithm.Append(getBytesForValueType(value));
 		}
 		else if (typeof(IEnumerable).IsAssignableFrom(memberType))
 		{
 			IEnumerable collection = (IEnumerable)value;
 			foreach (var item in collection)
 				if (item != null)
-					processMemberValue(hashAlgorithm, item.GetType(), item);
+					processType(item, hashAlgorithm, configurations);
 		}
 		else
-			computeHashFallback(value, hashAlgorithm);
+			processType(value, hashAlgorithm, configurations);
 	}
+
+
+	//private static byte[] computeHashFallback<T>(T obj, IHashAlgorithm hashAlgorithm)
+	//{
+
+	//	var properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+	//	var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+	//	foreach (var prop in properties)
+	//	{
+	//		var value = prop.GetValue(obj);
+	//		if (value == null) continue;
+	//		processMemberValue(hashAlgorithm, prop.PropertyType, value);
+	//	}
+
+	//	foreach (var field in fields)
+	//	{
+	//		var value = field.GetValue(obj);
+	//		if (value == null) continue;
+	//		processMemberValue(hashAlgorithm, field.FieldType, value);
+	//	}
+
+	//	return hashAlgorithm.GetHashAndReset();
+	//}
+
+	//private static byte[] computeHashWithConfig<T>(T obj, IHashAlgorithm hashAlgorithm, TypeConfiguration<T> config) where T : class
+	//{
+	//	foreach (var propertyConfig in config.PropertyConfigs)
+	//	{
+	//		if (propertyConfig.Value.Ignore)
+	//			continue;
+
+	//		var value = propertyConfig.Value.Selector(obj);
+	//		
+	//		if (value == null) 
+	//			continue;
+
+	//		if (propertyConfig.Value.Encoding != null && value is string strValue)
+	//		{
+	//			var stringBytes = propertyConfig.Value.Encoding.GetBytes(strValue);
+	//			hashAlgorithm.Append(stringBytes);
+	//		}
+	//		else
+	//			processMemberValue(hashAlgorithm, value.GetType(), value);
+	//	}
+
+	//	return hashAlgorithm.GetHashAndReset();
+	//}
+
 
 	private static bool isSupportedPrimitiveType(Type type) => 
 		type == typeof(decimal) || type == typeof(DateTime) || type == typeof(Guid);
