@@ -26,7 +26,7 @@ public class ObjectHasher : IObjectHasher
 	/// </summary>
 	/// <typeparam name="T">The type to register the configuration for.</typeparam>
 	/// <param name="configure">An action to configure the type.</param>
-	public void Register<T>(Action<TypeConfiguration<T>> configure)
+	public void Register<T>(Action<TypeConfiguration<T>> configure) where T : class, new()
 	{
 		var typeConfig = new TypeConfiguration<T>();
 		configure(typeConfig);
@@ -39,7 +39,7 @@ public class ObjectHasher : IObjectHasher
 	/// <typeparam name="T">The type of the object.</typeparam>
 	/// <param name="obj">The object to compute the hash for.</param>
 	/// <returns>A byte array representing the computed hash.</returns>
-	public byte[] ComputeHash<T>(T obj)
+	public byte[] ComputeHash<T>(T obj) where T: class
 	{
 		_hashAlgorithm.Reset();
 
@@ -93,11 +93,14 @@ public class ObjectHasher : IObjectHasher
 		return hashAlgorithm.GetHashAndReset();
 	}
 
-	private void computeHashWithConfig<T>(T obj, TypeConfiguration<T> config)
+	private void computeHashWithConfig<T>(T obj, TypeConfiguration<T> config) where T : class
 	{
 		foreach (var propertyConfig in config.PropertyConfigs)
 		{
-			var value = propertyConfig.Key.Compile()(obj);
+			if (propertyConfig.Value.Ignore)
+				continue;
+
+			var value = propertyConfig.Value.Selector(obj);
 			
 			if (value == null) 
 				continue;
