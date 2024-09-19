@@ -6,6 +6,8 @@ using System.Text;
 using FluentAssertions;
 using Xunit;
 
+namespace ObjectHasher.Tests;
+
 public class ObjectHasherTests
 {
 	// Example classes to test
@@ -29,7 +31,7 @@ public class ObjectHasherTests
 	{
 		// Arrange
 		var person = new Person { Id = 123, Name = "Alice", BirthDate = new DateTime(1990, 1, 1) };
-		var hasher = new ObjectHasher(new Sha256HashAlgorithm());
+		var hasher = new ObjectHash(new Sha256HashAlgorithm());
 
 		// Register custom settings for Person
 		hasher.Register<Person>(options =>
@@ -52,7 +54,7 @@ public class ObjectHasherTests
 	{
 		// Arrange
 		var person = new Person { Id = 456, Name = "Bob", BirthDate = new DateTime(1985, 5, 23) };
-		var hasher = new ObjectHasher(new Sha256HashAlgorithm());
+		var hasher = new ObjectHash(new Sha256HashAlgorithm());
 
 		// Register custom settings for Person (this should be ignored by the static method)
 		hasher.Register<Person>(options =>
@@ -61,7 +63,7 @@ public class ObjectHasherTests
 		});
 
 		// Act
-		var hash = ObjectHasher.ComputeHashStatic(person, new Sha256HashAlgorithm());
+		var hash = ObjectHash.ComputeHash(person, new Sha256HashAlgorithm());
 
 		// Assert
 		hash.Should().NotBeNull();
@@ -74,7 +76,7 @@ public class ObjectHasherTests
 	{
 		// Arrange
 		var person = new Person { Id = 789, Name = "Charlie", BirthDate = new DateTime(2000, 12, 31) };
-		var hasher = new ObjectHasher(new Crc32HashAlgorithm());
+		var hasher = new ObjectHash(new Crc32HashAlgorithm());
 
 		// Register custom settings for Person
 		hasher.Register<Person>(options =>
@@ -96,7 +98,7 @@ public class ObjectHasherTests
 	{
 		// Arrange
 		var person = new Person { Id = 1010, Name = "David", BirthDate = new DateTime(1995, 11, 11) };
-		var hasher = new ObjectHasher(new Crc64HashAlgorithm());
+		var hasher = new ObjectHash(new Crc64HashAlgorithm());
 
 		// Register custom settings for Person
 		hasher.Register<Person>(options =>
@@ -119,7 +121,7 @@ public class ObjectHasherTests
 		// Arrange
 		var person = new Person { Id = 1111, Name = "Eve", BirthDate = new DateTime(1970, 1, 1) };
 		var car = new Car { Make = "Tesla", Model = "Model S", Year = 2020 };
-		var hasher = new ObjectHasher(new Sha512HashAlgorithm());
+		var hasher = new ObjectHash(new Sha512HashAlgorithm());
 
 		// Register custom settings for Person (ignore Id)
 		hasher.Register<Person>(options =>
@@ -145,7 +147,7 @@ public class ObjectHasherTests
 		// Arrange
 		var person = new Person { Id = 123, Name = "Alice", BirthDate = new DateTime(1990, 1, 1) };
 		var car = new Car { Make = "Tesla", Model = "Model 3", Year = 2019 };
-		var hasher = new ObjectHasher(new XxHash64Algorithm());
+		var hasher = new ObjectHash(new XxHash64Algorithm());
 
 		// Register custom settings for Person and Car
 		hasher.Register<Person>(options =>
@@ -176,7 +178,7 @@ public class ObjectHasherTests
 	{
 		// Arrange
 		var person = new Person { Id = 2222, Name = "Frank", BirthDate = new DateTime(2001, 7, 10) };
-		var hasher = new ObjectHasher(new Sha1HashAlgorithm());
+		var hasher = new ObjectHash(new Sha1HashAlgorithm());
 
 		// Register custom settings for Person (this should not affect static hashing)
 		hasher.Register<Person>(options =>
@@ -185,7 +187,7 @@ public class ObjectHasherTests
 		});
 
 		// Act
-		var staticHash = ObjectHasher.ComputeHashStatic(person, new Sha1HashAlgorithm());
+		var staticHash = ObjectHash.ComputeHash(person, new Sha1HashAlgorithm());
 		var instanceHash = hasher.ComputeHash(person);
 
 		// Assert
@@ -380,22 +382,21 @@ public class ObjectHasherTests
 			hash1.Should().BeEquivalentTo(hash2, $"{algorithm} should produce the same hash for the same encoding ({encoding1Name}) when used consistently.");
 	}
 
-	// Helper method to return the appropriate ObjectHasher for each algorithm
-	private ObjectHasher getHasherForAlgorithm(string algorithm)
+	private ObjectHash getHasherForAlgorithm(string algorithm)
 	{
 		return algorithm switch
 		{
-			"MD5" => new ObjectHasher(new Md5HashAlgorithm()),
-			"SHA1" => new ObjectHasher(new Sha1HashAlgorithm()),
-			"SHA256" => new ObjectHasher(new Sha256HashAlgorithm()),
-			"SHA384" => new ObjectHasher(new Sha384HashAlgorithm()),
-			"SHA512" => new ObjectHasher(new Sha512HashAlgorithm()),
-			"CRC32" => new ObjectHasher(new Crc32HashAlgorithm()),
-			"CRC64" => new ObjectHasher(new Crc64HashAlgorithm()),
-			"XxHash32" => new ObjectHasher(new XxHash32Algorithm()),
-			"XxHash64" => new ObjectHasher(new XxHash64Algorithm()),
-			"XxHash128" => new ObjectHasher(new XxHash128Algorithm()),
-			"XxHash3" => new ObjectHasher(new XxHash3Algorithm()),
+			"MD5" => new ObjectHash(new Md5HashAlgorithm()),
+			"SHA1" => new ObjectHash(new Sha1HashAlgorithm()),
+			"SHA256" => new ObjectHash(new Sha256HashAlgorithm()),
+			"SHA384" => new ObjectHash(new Sha384HashAlgorithm()),
+			"SHA512" => new ObjectHash(new Sha512HashAlgorithm()),
+			"CRC32" => new ObjectHash(new Crc32HashAlgorithm()),
+			"CRC64" => new ObjectHash(new Crc64HashAlgorithm()),
+			"XxHash32" => new ObjectHash(new XxHash32Algorithm()),
+			"XxHash64" => new ObjectHash(new XxHash64Algorithm()),
+			"XxHash128" => new ObjectHash(new XxHash128Algorithm()),
+			"XxHash3" => new ObjectHash(new XxHash3Algorithm()),
 			_ => throw new ArgumentException("Invalid algorithm", nameof(algorithm)),
 		};
 	}
