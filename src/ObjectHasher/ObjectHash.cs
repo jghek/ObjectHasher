@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
+namespace ObjectHasher;
+
+
 /// <summary>
 /// Provides functionality to compute hashes for objects using a specified hash algorithm.
 /// </summary
@@ -63,7 +66,7 @@ public class ObjectHash : IObjectHash
 		return hashAlgorithm.GetHashAndReset();
 	}
 
-	private static void processType(object o, IHashAlgorithm hashAlgorithm, Dictionary<Type, TypeConfiguration> configurations, Encoding defaultEncoding) 
+	private static void processType(object o, IHashAlgorithm hashAlgorithm, Dictionary<Type, TypeConfiguration> configurations, Encoding defaultEncoding)
 	{
 		ArgumentNullException.ThrowIfNull(hashAlgorithm, nameof(hashAlgorithm));
 		ArgumentNullException.ThrowIfNull(configurations, nameof(configurations));
@@ -93,7 +96,7 @@ public class ObjectHash : IObjectHash
 					processMemberValue(propertyConfig.Key, value, hashAlgorithm, configurations, defaultEncoding);
 			}
 		}
-		else 
+		else
 		{
 			var properties = o.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
 			var fields = o.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -141,7 +144,7 @@ public class ObjectHash : IObjectHash
 			processType(value, hashAlgorithm, configurations, defaultEncoding);
 	}
 
-	private static bool isSupportedPrimitiveType(Type type) => 
+	private static bool isSupportedPrimitiveType(Type type) =>
 		type == typeof(decimal) || type == typeof(DateTime) || type == typeof(Guid);
 
 	private static byte[] getBytesForPrimitive(object value) =>

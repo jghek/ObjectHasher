@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
 
+namespace ObjectHasher;
+
 public class Md5HashAlgorithm : IHashAlgorithm
 {
 	private readonly MD5 _md5 = MD5.Create();

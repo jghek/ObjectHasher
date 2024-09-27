@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
 
+namespace ObjectHasher;
+
 public class Sha256HashAlgorithm : IHashAlgorithm
 {
 	private readonly SHA256 _sha256 = SHA256.Create();

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO.Hashing;
 
+namespace ObjectHasher;
+
 public class Crc64HashAlgorithm : IHashAlgorithm
 {
 	private readonly Crc64 _crc64 = new Crc64();

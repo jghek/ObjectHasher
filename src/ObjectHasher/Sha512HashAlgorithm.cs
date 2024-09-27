@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
 
+namespace ObjectHasher;
+
 public class Sha512HashAlgorithm : IHashAlgorithm
 {
 	private readonly SHA512 _sha512 = SHA512.Create();

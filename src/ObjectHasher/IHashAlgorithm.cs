@@ -1,6 +1,7 @@
 ﻿using System;
 
-// Interface for the different hash algorithms
+namespace ObjectHasher;
+
 public interface IHashAlgorithm
 {
 	void Append(ReadOnlySpan<byte> data);

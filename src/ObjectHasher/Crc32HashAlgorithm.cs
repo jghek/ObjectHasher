@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO.Hashing;
 
-// Wrappers for non-cryptographic hash algorithms
+namespace ObjectHasher;
+
 public class Crc32HashAlgorithm : IHashAlgorithm
 {
 	private readonly Crc32 _crc32 = new Crc32();

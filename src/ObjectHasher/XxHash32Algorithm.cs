@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO.Hashing;
 
+namespace ObjectHasher;
+
 public class XxHash32Algorithm : IHashAlgorithm
 {
 	private readonly XxHash32 _xxHash32 = new XxHash32();

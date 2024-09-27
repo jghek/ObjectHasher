@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-// Wrappers for cryptographic hash algorithms
+namespace ObjectHasher;
+
 public class Sha1HashAlgorithm : IHashAlgorithm
 {
 	private readonly SHA1 _sha1 = SHA1.Create();

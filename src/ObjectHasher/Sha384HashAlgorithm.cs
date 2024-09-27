@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
 
+namespace ObjectHasher;
+
 public class Sha384HashAlgorithm : IHashAlgorithm
 {
 	private readonly SHA384 _sha384 = SHA384.Create();
